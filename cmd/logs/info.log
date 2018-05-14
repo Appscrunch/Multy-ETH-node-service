@@ -19573,3 +19573,15 @@ ERROR[0m] streamer: Add mempool record rpc error: code = Unavailable desc = tra
 2018-04-29/16:16:11.617 [[32mINFO[0m] eth: Run ETH Process 
 2018-04-29/16:16:11.617 [[32mINFO[0m] eth: ETH RPC Connection http://0.0.0.0:18545 
 2018-04-29/16:16:11.618 [[31mERROR[0m] eth: NewClient:EthNewPendingTransactionFilter: Post http://0.0.0.0:18545: dial tcp 0.0.0.0:18545: getsockopt: connection refused 
+2018-05-14/18:37:26.986 [[31mERROR[0m] main: --------------------------------new multy back server session 
+2018-05-14/18:37:26.987 [[32mINFO[0m] main: CONFIGURATION={Name:eth-client GrpcPort::6001 EthConf:{Address:0.0.0.0 RPCPort::18545 WsPort::8545} ServiceInfo:{Branch: Commit: Buildtime: Lasttag:}} 
+2018-05-14/18:37:26.987 [[32mINFO[0m] main: branch: master 
+2018-05-14/18:37:26.987 [[32mINFO[0m] main: commit: 4870c17 
+2018-05-14/18:37:26.988 [[32mINFO[0m] main: build time: 2018-05-14T18:37:25+0300 
+2018-05-14/18:37:26.988 [[32mINFO[0m] NodeClient: Users data initialization done 
+2018-05-14/18:37:26.989 [[32mINFO[0m] NodeClient: ETH client initialization done 
+2018-05-14/18:42:28.725 [[31mERROR[0m] main: --------------------------------new multy back server session 
+2018-05-14/18:42:28.725 [[32mINFO[0m] main: CONFIGURATION={Name:eth-client GrpcPort::6001 ETHConf:{Address:0.0.0.0 RPCPort::18545 WsPort::8545} ServiceInfo:{Branch: Commit: Buildtime: Lasttag:}} 
+2018-05-14/18:42:28.726 [[32mINFO[0m] main: branch: master 
+2018-05-14/18:42:28.726 [[32mINFO[0m] main: commit: 4870c17 
+2018-05-14/18:42:28.726 [[32mINFO[0m] main: build time: 2018-05-14T18:42:27+0300 

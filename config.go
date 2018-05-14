@@ -1,9 +1,10 @@
+package node
+
 /*
 Copyright 2018 Idealnaya rabota LLC
 Licensed under Multy.io license.
 See LICENSE for details
 */
-package node
 
 import (
 	"github.com/Appscrunch/Multy-ETH-node-service/eth"
@@ -14,6 +15,6 @@ import (
 type Configuration struct {
 	Name        string
 	GrpcPort    string
-	EthConf     eth.Conf
+	ETHConf     eth.Conf
 	ServiceInfo store.ServiceInfo
 }

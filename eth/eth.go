@@ -1,9 +1,10 @@
+package eth
+
 /*
 Copyright 2017 Idealnaya rabota LLC
 Licensed under Multy.io license.
 See LICENSE for details
 */
-package eth
 
 import (
 	"context"
@@ -12,15 +13,15 @@ import (
 	pb "github.com/Appscrunch/Multy-back/node-streamer/eth"
 	"github.com/Appscrunch/Multy-back/store"
 	"github.com/KristinaEtc/slf"
-	_ "github.com/KristinaEtc/slflog"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/onrik/ethrpc"
 )
 
 var log = slf.WithContext("eth")
 
+// Client contains all the data
 type Client struct {
-	Rpc            *ethrpc.EthRPC
+	RPC            *ethrpc.EthRPC
 	Client         *rpc.Client
 	config         *Conf
 	TransactionsCh chan pb.ETHTransaction
@@ -30,12 +31,14 @@ type Client struct {
 	UserDataM      *sync.Mutex
 }
 
+// Conf is a config struct
 type Conf struct {
 	Address string
-	RpcPort string
+	RPCPort string
 	WsPort  string
 }
 
+// NewClient adds new client
 func NewClient(conf *Conf, usersData *map[string]store.AddressExtended) *Client {
 	c := &Client{
 		config:         conf,
@@ -49,13 +52,15 @@ func NewClient(conf *Conf, usersData *map[string]store.AddressExtended) *Client 
 	return c
 }
 
+// RunProcess interacts with rpc
 func (c *Client) RunProcess() error {
-	log.Info("Run ETH Process")
-	// c.Rpc = ethrpc.NewEthRPC("http://" + c.config.Address + c.config.RpcPort)
-	c.Rpc = ethrpc.NewEthRPC("http://" + c.config.Address + c.config.RpcPort)
-	log.Infof("ETH RPC Connection %s", "http://"+c.config.Address+c.config.RpcPort)
 
-	_, err := c.Rpc.EthNewPendingTransactionFilter()
+	log.Info("Run ETH Process")
+	// c.Rpc = ethrpc.NewEthRPC("http://" + c.config.Address + c.config.RPCPort)
+	c.RPC = ethrpc.NewEthRPC("http://" + c.config.Address + c.config.RPCPort)
+	log.Infof("ETH RPC Connection %s", "http://"+c.config.Address+c.config.RPCPort)
+
+	_, err := c.RPC.EthNewPendingTransactionFilter()
 	if err != nil {
 		log.Errorf("NewClient:EthNewPendingTransactionFilter: %s", err.Error())
 		return err
@@ -63,7 +68,7 @@ func (c *Client) RunProcess() error {
 
 	// client, err := rpc.Dial("ws://" + c.config.Address + c.config.WsPort)
 	client, err := rpc.Dial("ws://" + c.config.Address + c.config.WsPort)
-
+	defer client.Close()
 	if err != nil {
 		log.Errorf("Dial err: %s", err.Error())
 		return err
@@ -99,8 +104,6 @@ func (c *Client) RunProcess() error {
 			go c.blockTransaction(v["hash"].(string))
 		}
 	}
-
-	defer client.Close()
-
+	// TODO: Fix unreachable code
 	return nil
 }

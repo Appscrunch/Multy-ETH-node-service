@@ -6,7 +6,7 @@ import (
 )
 
 func (c *Client) blockTransaction(hash string) {
-	block, err := c.Rpc.EthGetBlockByHash(hash, true)
+	block, err := c.RPC.EthGetBlockByHash(hash, true)
 	if err != nil {
 		log.Errorf("Get Block Err:%s", err.Error())
 		return
