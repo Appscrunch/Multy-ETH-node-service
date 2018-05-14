@@ -15,7 +15,6 @@ import (
 	pb "github.com/Appscrunch/Multy-back/node-streamer/eth"
 	"github.com/Appscrunch/Multy-back/store"
 	"github.com/KristinaEtc/slf"
-	_ "github.com/KristinaEtc/slflog"
 )
 
 var log = slf.WithContext("streamer")
@@ -24,10 +23,11 @@ var log = slf.WithContext("streamer")
 type Server struct {
 	UsersData *map[string]store.AddressExtended
 	M         *sync.Mutex
-	EthCli    *eth.Client
+	ETHCli    *eth.Client
 	Info      *store.ServiceInfo
 }
 
+// ServiceInfo return service info information
 func (s *Server) ServiceInfo(c context.Context, in *pb.Empty) (*pb.ServiceVersion, error) {
 	return &pb.ServiceVersion{
 		Branch:    s.Info.Branch,
@@ -37,8 +37,9 @@ func (s *Server) ServiceInfo(c context.Context, in *pb.Empty) (*pb.ServiceVersio
 	}, nil
 }
 
+// EventGetGasPrice returns gas price
 func (s *Server) EventGetGasPrice(ctx context.Context, in *pb.Empty) (*pb.GasPrice, error) {
-	gp, err := s.EthCli.GetGasPrice()
+	gp, err := s.ETHCli.GetGasPrice()
 	if err != nil {
 		return &pb.GasPrice{}, err
 	}
@@ -47,6 +48,7 @@ func (s *Server) EventGetGasPrice(ctx context.Context, in *pb.Empty) (*pb.GasPri
 	}, nil
 }
 
+// EventInitialAdd adds initial user
 func (s *Server) EventInitialAdd(c context.Context, ud *pb.UsersData) (*pb.ReplyInfo, error) {
 	log.Debugf("EventInitialAdd - %v", ud.Map)
 
@@ -58,9 +60,9 @@ func (s *Server) EventInitialAdd(c context.Context, ud *pb.UsersData) (*pb.Reply
 			AddressIndex: int(ex.GetAddressIndex()),
 		}
 	}
-	s.EthCli.UserDataM.Lock()
+	s.ETHCli.UserDataM.Lock()
 	*s.UsersData = udMap
-	s.EthCli.UserDataM.Unlock()
+	s.ETHCli.UserDataM.Unlock()
 
 	log.Debugf("EventInitialAdd - %v", udMap)
 
@@ -71,9 +73,9 @@ func (s *Server) EventInitialAdd(c context.Context, ud *pb.UsersData) (*pb.Reply
 
 // EventAddNewAddress us used to add new watch address to existing pairs
 func (s *Server) EventAddNewAddress(c context.Context, wa *pb.WatchAddress) (*pb.ReplyInfo, error) {
-	s.EthCli.UserDataM.Lock()
+	s.ETHCli.UserDataM.Lock()
 	newMap := *s.UsersData
-	s.EthCli.UserDataM.Unlock()
+	s.ETHCli.UserDataM.Unlock()
 	if newMap == nil {
 		newMap = map[string]store.AddressExtended{}
 	}
@@ -89,9 +91,9 @@ func (s *Server) EventAddNewAddress(c context.Context, wa *pb.WatchAddress) (*pb
 		AddressIndex: int(wa.AddressIndex),
 	}
 
-	s.EthCli.UserDataM.Lock()
+	s.ETHCli.UserDataM.Lock()
 	*s.UsersData = newMap
-	s.EthCli.UserDataM.Unlock()
+	s.ETHCli.UserDataM.Unlock()
 
 	log.Debugf("EventAddNewAddress - %v", newMap)
 
@@ -101,8 +103,9 @@ func (s *Server) EventAddNewAddress(c context.Context, wa *pb.WatchAddress) (*pb
 
 }
 
+// EventGetBlockHeight returns block height
 func (s *Server) EventGetBlockHeight(ctx context.Context, in *pb.Empty) (*pb.BlockHeight, error) {
-	h, err := s.EthCli.GetBlockHeight()
+	h, err := s.ETHCli.GetBlockHeight()
 	if err != nil {
 		return &pb.BlockHeight{}, err
 	}
@@ -111,8 +114,9 @@ func (s *Server) EventGetBlockHeight(ctx context.Context, in *pb.Empty) (*pb.Blo
 	}, nil
 }
 
+// EventGetAdressNonce return address nonce
 func (s *Server) EventGetAdressNonce(c context.Context, in *pb.AddressToResync) (*pb.Nonce, error) {
-	n, err := s.EthCli.GetAddressNonce(in.GetAddress())
+	n, err := s.ETHCli.GetAddressNonce(in.GetAddress())
 	if err != nil {
 		return &pb.Nonce{}, err
 	}
@@ -121,12 +125,13 @@ func (s *Server) EventGetAdressNonce(c context.Context, in *pb.AddressToResync) 
 	}, nil
 }
 
+// EventGetAdressBalance returns address balance
 func (s *Server) EventGetAdressBalance(ctx context.Context, in *pb.AddressToResync) (*pb.Balance, error) {
-	b, err := s.EthCli.GetAddressBalance(in.GetAddress())
+	b, err := s.ETHCli.GetAddressBalance(in.GetAddress())
 	if err != nil {
 		return &pb.Balance{}, err
 	}
-	p, err := s.EthCli.GetAddressPendingBalance(in.GetAddress())
+	p, err := s.ETHCli.GetAddressPendingBalance(in.GetAddress())
 	if err != nil {
 		return &pb.Balance{}, err
 	}
@@ -136,8 +141,9 @@ func (s *Server) EventGetAdressBalance(ctx context.Context, in *pb.AddressToResy
 	}, nil
 }
 
+// EventGetAllMempool returns all the mempool information
 func (s *Server) EventGetAllMempool(_ *pb.Empty, stream pb.NodeCommuunications_EventGetAllMempoolServer) error {
-	mp, err := s.EthCli.GetAllTxPool()
+	mp, err := s.ETHCli.GetAllTxPool()
 	if err != nil {
 		return err
 	}
@@ -165,6 +171,7 @@ type resyncTx struct {
 	} `json:"result"`
 }
 
+// EventResyncAddress recyncs address
 func (s *Server) EventResyncAddress(c context.Context, address *pb.AddressToResync) (*pb.ReplyInfo, error) {
 	log.Debugf("EventResyncAddress")
 	addr := address.GetAddress()
@@ -208,7 +215,7 @@ func (s *Server) EventResyncAddress(c context.Context, address *pb.AddressToResy
 	log.Debugf("EventResyncAddress %d", len(reTx.Result))
 
 	for _, hash := range reTx.Result {
-		s.EthCli.ResyncAddress(hash.Hash)
+		s.ETHCli.ResyncAddress(hash.Hash)
 	}
 
 	return &pb.ReplyInfo{
@@ -216,8 +223,10 @@ func (s *Server) EventResyncAddress(c context.Context, address *pb.AddressToResy
 	}, nil
 
 }
+
+// EventSendRawTx sends raw TXs
 func (s *Server) EventSendRawTx(c context.Context, tx *pb.RawTx) (*pb.ReplyInfo, error) {
-	hash, err := s.EthCli.SendRawTransaction(tx.GetTransaction())
+	hash, err := s.ETHCli.SendRawTransaction(tx.GetTransaction())
 	if err != nil {
 		return &pb.ReplyInfo{
 			Message: "err: wrong raw tx",
@@ -230,11 +239,12 @@ func (s *Server) EventSendRawTx(c context.Context, tx *pb.RawTx) (*pb.ReplyInfo,
 
 }
 
+// EventDeleteMempool removes mempool by parameters
 func (s *Server) EventDeleteMempool(_ *pb.Empty, stream pb.NodeCommuunications_EventDeleteMempoolServer) error {
-	for del := range s.EthCli.DeleteMempool {
+	for del := range s.ETHCli.DeleteMempool {
 		err := stream.Send(&del)
 		if err != nil {
-			//HACK:
+			// HACK:
 			log.Errorf("Delete mempool record %s", err.Error())
 			i := 0
 			for {
@@ -256,11 +266,12 @@ func (s *Server) EventDeleteMempool(_ *pb.Empty, stream pb.NodeCommuunications_E
 	return nil
 }
 
+// EventAddMempoolRecord adds record to mempool
 func (s *Server) EventAddMempoolRecord(_ *pb.Empty, stream pb.NodeCommuunications_EventAddMempoolRecordServer) error {
-	for add := range s.EthCli.AddToMempool {
+	for add := range s.ETHCli.AddToMempool {
 		err := stream.Send(&add)
 		if err != nil {
-			//HACK:
+			// HACK:
 			log.Errorf("Add mempool record %s", err.Error())
 			i := 0
 			for {
@@ -282,12 +293,13 @@ func (s *Server) EventAddMempoolRecord(_ *pb.Empty, stream pb.NodeCommuunication
 	return nil
 }
 
+// NewTx adds new TX
 func (s *Server) NewTx(_ *pb.Empty, stream pb.NodeCommuunications_NewTxServer) error {
-	for tx := range s.EthCli.TransactionsCh {
+	for tx := range s.ETHCli.TransactionsCh {
 		log.Infof("NewTx history - %v", tx.String())
 		err := stream.Send(&tx)
 		if err != nil {
-			//HACK:
+			// HACK:
 			log.Errorf("NewTx history %s", err.Error())
 			i := 0
 			for {

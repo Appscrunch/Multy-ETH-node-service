@@ -1,9 +1,10 @@
+package node
+
 /*
 Copyright 2018 Idealnaya rabota LLC
 Licensed under Multy.io license.
 See LICENSE for details
 */
-package node
 
 import (
 	"fmt"
@@ -15,26 +16,23 @@ import (
 	pb "github.com/Appscrunch/Multy-back/node-streamer/eth"
 	"github.com/Appscrunch/Multy-back/store"
 	"github.com/KristinaEtc/slf"
-	_ "github.com/KristinaEtc/slflog"
 	"google.golang.org/grpc"
 )
 
 var log = slf.WithContext("NodeClient")
 
-// Multy is a main struct of service
-
-// NodeClient is a main struct of service
-type NodeClient struct {
+// Client is a main struct of service
+type Client struct {
 	Config     *Configuration
 	Instance   *eth.Client
 	GRPCserver *streamer.Server
-	Clients    *map[string]store.AddressExtended // address to userid
+	Clients    *map[string]store.AddressExtended // Address to userid
 	// BtcApi     *gobcy.API
 }
 
 // Init initializes Multy instance
-func Init(conf *Configuration) (*NodeClient, error) {
-	cli := &NodeClient{
+func Init(conf *Configuration) (*Client, error) {
+	cli := &Client{
 		Config: conf,
 	}
 
@@ -46,30 +44,30 @@ func Init(conf *Configuration) (*NodeClient, error) {
 		},
 	}
 
-	// initail initialization of clients data
+	// Initial initialization of clients data
 	cli.Clients = &usersData
 	log.Infof("Users data initialization done")
 
-	// init gRPC server
+	// Init gRPC server
 	lis, err := net.Listen("tcp", conf.GrpcPort)
 	if err != nil {
 		return nil, fmt.Errorf("failed to listen: %v", err.Error())
 	}
-	// Creates a new gRPC server
 
-	ethCli := eth.NewClient(&conf.EthConf, cli.Clients)
+	// Creates a new gRPC server
+	ETHCli := eth.NewClient(&conf.ETHConf, cli.Clients)
 	if err != nil {
 		return nil, fmt.Errorf("eth.NewClient initialization: %s", err.Error())
 	}
 	log.Infof("ETH client initialization done")
 
-	cli.Instance = ethCli
+	cli.Instance = ETHCli
 
 	s := grpc.NewServer()
 	srv := streamer.Server{
 		UsersData: cli.Clients,
 		M:         &sync.Mutex{},
-		EthCli:    cli.Instance,
+		ETHCli:    cli.Instance,
 		Info:      &conf.ServiceInfo,
 	}
 

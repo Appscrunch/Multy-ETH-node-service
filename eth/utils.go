@@ -1,9 +1,10 @@
+package eth
+
 /*
 Copyright 2018 Idealnaya rabota LLC
 Licensed under Multy.io license.
 See LICENSE for details
 */
-package eth
 
 import (
 	"math/big"
@@ -15,74 +16,80 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+// TX status constants
 const ( // currency id  nsq
-	TxStatusAppearedInMempoolIncoming = 1
-	TxStatusAppearedInBlockIncoming   = 2
-
+	TxStatusAppearedInMempoolIncoming  = 1
+	TxStatusAppearedInBlockIncoming    = 2
 	TxStatusAppearedInMempoolOutcoming = 3
 	TxStatusAppearedInBlockOutcoming   = 4
-
-	TxStatusInBlockConfirmedIncoming  = 5
-	TxStatusInBlockConfirmedOutcoming = 6
-
-	WeiInEthereum = 1000000000000000000
+	TxStatusInBlockConfirmedIncoming   = 5
+	TxStatusInBlockConfirmedOutcoming  = 6
+	WeiInEthereum                      = 1000000000000000000
 )
 
 func newETHtx(hash, from, to string, amount float64, gas, gasprice, nonce int) store.TransactionETH {
 	return store.TransactionETH{}
 }
 
+// SendRawTransaction sends raw TX
 func (client *Client) SendRawTransaction(rawTX string) (string, error) {
-	hash, err := client.Rpc.EthSendRawTransaction(rawTX)
+	hash, err := client.RPC.EthSendRawTransaction(rawTX)
 	if err != nil {
-		log.Errorf("SendRawTransaction:rpc.EthSendRawTransaction: %s", err.Error())
+		log.Errorf("SendRawTransaction:rPC.EthSendRawTransaction: %s", err.Error())
 		return hash, err
 	}
 	return hash, err
 }
 
+// GetAddressBalance returns address balance
 func (client *Client) GetAddressBalance(address string) (big.Int, error) {
-	balance, err := client.Rpc.EthGetBalance(address, "latest")
+	balance, err := client.RPC.EthGetBalance(address, "latest")
 	if err != nil {
-		log.Errorf("GetAddressBalance:rpc.EthGetBalance: %s", err.Error())
+		log.Errorf("GetAddressBalance:rPC.EthGetBalance: %s", err.Error())
 		return balance, err
 	}
 	return balance, err
 }
 
+// GetGasPrice return gas price
 func (client *Client) GetGasPrice() (big.Int, error) {
-	gas, err := client.Rpc.EthGasPrice()
+	gas, err := client.RPC.EthGasPrice()
 	if err != nil {
-		log.Errorf("GetGasPrice:rpc.EthGetBalance: %s", err.Error())
+		log.Errorf("GetGasPrice:rPC.EthGetBalance: %s", err.Error())
 		return gas, err
 	}
 	return gas, err
 }
 
+// GetAddressPendingBalance returns pending balance of selected address
 func (client *Client) GetAddressPendingBalance(address string) (big.Int, error) {
-	balance, err := client.Rpc.EthGetBalance(address, "pending")
+	balance, err := client.RPC.EthGetBalance(address, "pending")
 	if err != nil {
-		log.Errorf("GetAddressPendingBalance:rpc.EthGetBalance: %s", err.Error())
+		log.Errorf("GetAddressPendingBalance:RPC.EthGetBalance: %s", err.Error())
 		return balance, err
 	}
 	log.Errorf("GetAddressPendingBalance %v", balance.String())
 	return balance, err
 }
 
+// GetAllTxPool return TXs pool
 func (client *Client) GetAllTxPool() (map[string]interface{}, error) {
-	return client.Rpc.TxPoolContent()
+	return client.RPC.TxPoolContent()
 }
 
+// GetBlockHeight returns block height
 func (client *Client) GetBlockHeight() (int, error) {
-	return client.Rpc.EthBlockNumber()
+	return client.RPC.EthBlockNumber()
 }
 
+// GetAddressNonce returns nonce of address
 func (client *Client) GetAddressNonce(address string) (int, error) {
-	return client.Rpc.EthGetTransactionCount(address, "latest")
+	return client.RPC.EthGetTransactionCount(address, "latest")
 }
 
+// ResyncAddress resyncs address by TxID
 func (client *Client) ResyncAddress(txid string) error {
-	tx, err := client.Rpc.EthGetTransactionByHash(txid)
+	tx, err := client.RPC.EthGetTransactionByHash(txid)
 	if err != nil {
 		return err
 	}
@@ -107,14 +114,14 @@ func (client *Client) parseETHTransaction(rawTX ethrpc.Transaction, blockHeight 
 	}
 
 	if fromUser.UserID == toUser.UserID && fromUser.UserID == "" {
-		// not our users tx
+		// Not our users tx
 		return
 	}
 
 	tx := rawToGenerated(rawTX)
 	tx.Resync = isResync
 
-	block, err := client.Rpc.EthGetBlockByHash(rawTX.BlockHash, false)
+	block, err := client.RPC.EthGetBlockByHash(rawTX.BlockHash, false)
 	if err != nil {
 		if blockHeight == -1 {
 			tx.TxpoolTime = time.Now().Unix()
@@ -156,12 +163,10 @@ func (client *Client) parseETHTransaction(rawTX ethrpc.Transaction, blockHeight 
 		if blockHeight == -1 {
 			tx.Status = TxStatusAppearedInMempoolOutcoming
 		}
-
-		// send to multy-back
+		// Send to multy-back
 		client.TransactionsCh <- tx
 	}
-
-	// from v1 to v2 incoming
+	// From v1 to v2 incoming
 	if toUser.UserID != "" {
 		tx.UserID = toUser.UserID
 		tx.WalletIndex = int32(toUser.WalletIndex)
@@ -170,8 +175,7 @@ func (client *Client) parseETHTransaction(rawTX ethrpc.Transaction, blockHeight 
 		if blockHeight == -1 {
 			tx.Status = TxStatusAppearedInMempoolIncoming
 		}
-
-		// send to multy-back
+		// Send to multy-back
 		client.TransactionsCh <- tx
 	}
 
